@@ -1,11 +1,22 @@
 {
   "manifest_version": 3,
   "name": "ConceptBridge LIVE",
-  "version": "0.1",
-  "description": "AI study helper - Pomodoro + notes + quizzes",
-  "permissions": ["storage", "scripting", "activeTab"],
-  "host_permissions": ["https://www.youtube.com/*"],
-  "background": { "service_worker": "background.js" },
+  "version": "1.0",
+  "description": "AI-powered YouTube learning assistant with Pomodoro focus timer, motivational UI, smart notes, flashcards, and gamified quiz.",
+
+  "permissions": [
+    "storage",
+    "activeTab",
+    "scripting"
+  ],
+
+  "host_permissions": [
+    "https://www.youtube.com/*",
+    "https://generativelanguage.googleapis.com/*",
+    "https://yt.lemnoslife.com/*",
+    "https://cdn.pixabay.com/*"
+  ],
+
   "content_scripts": [
     {
       "matches": ["https://www.youtube.com/*"],
@@ -13,5 +24,12 @@
       "css": ["style.css"]
     }
   ],
-  "action": { "default_popup": "popup.html" }
+
+  "background": {
+    "service_worker": "background.js"
+  },
+
+  "action": {
+    "default_popup": "popup.html"
+  }
 }

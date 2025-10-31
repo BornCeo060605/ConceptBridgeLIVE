@@ -1,177 +1,159 @@
-// content.js - ConceptBridge LIVE (Pomodoro Timer MVP)
-// 1) Creates an overlay with Start / Pause / Reset
-// 2) Auto-starts on video play (only once per fresh session)
-// 3) Pauses video at session end and triggers startQuizModal() (placeholder)
-// 4) Includes Demo Mode button for quick demo
+// ConceptBridge LIVE – Auto 3-Minute Demo Mode
+console.log("ConceptBridge LIVE content script loaded ✅");
 
-console.log("ConceptBridge LIVE: content script loaded");
+// -----------------------------
+// 🌟 UI CREATION
+// -----------------------------
+function initPomodoroUI() {
+  if (document.getElementById("cbBoxInner")) return; // Avoid duplicates
 
-// ---- CONFIG ----
-const POMODORO_SECONDS = 25 * 60; // change during dev to 60 for quick demo
-const DEMO_SECONDS = 60; // if demo mode toggled
-
-// ---- STATE ----
-let focusSeconds = POMODORO_SECONDS;
-let timerInterval = null;
-let isRunning = false;
-let sessionStartedByAuto = false; // to avoid auto-start loops
-
-// ---- UI CREATION ----
-function createOverlay() {
-  if (document.getElementById("cb-overlay")) return; // don't create multiple times
-
-  const overlay = document.createElement("div");
-  overlay.id = "cb-overlay";
-  overlay.innerHTML = `
-    <h4 id="cb-title">Focus Mode: OFF</h4>
-    <div id="cb-timer">${formatTime(focusSeconds)}</div>
-    <div id="cb-controls">
-      <button class="cb-btn" id="cb-start">Start</button>
-      <button class="cb-btn" id="cb-pause">Pause</button>
-      <button class="cb-btn" id="cb-reset">Reset</button>
-      <button class="cb-btn" id="cb-demo">Demo</button>
+  const box = document.createElement("div");
+  box.id = "cbBox";
+  box.innerHTML = `
+    <div id="cbBoxInner">
+      <div id="motivText">💪 Ready to Focus?</div>
+      <div id="timerDisplay">03:00</div>
+      <button id="startFocus">Start 25-Min Session</button>
+      <button id="testFocus">🧪 Demo 3-Min Mode</button>
     </div>
-    <div id="cb-motivate" class="pulse">Stay focused — small consistent steps 🚀</div>
   `;
-  document.body.appendChild(overlay);
-
-  document.getElementById("cb-start").addEventListener("click", () => startFocusTimer(false));
-  document.getElementById("cb-pause").addEventListener("click", pauseFocusTimer);
-  document.getElementById("cb-reset").addEventListener("click", resetFocusTimer);
-  document.getElementById("cb-demo").addEventListener("click", () => startFocusTimer(true));
+  document.body.appendChild(box);
+  setupButtonHandlers();
 }
 
-// ---- UTILS ----
-function formatTime(totalSec) {
-  const m = Math.floor(totalSec / 60);
-  const s = totalSec % 60;
-  return `${m}:${s < 10 ? "0" + s : s}`;
-}
+// -----------------------------
+// ⏱️ VARIABLES
+// -----------------------------
+let focusDuration = 3 * 60; // default 3-minute demo
+let timer = null;
+let running = false;
+let videoElement = null;
+let adCheckInterval = null;
 
-function updateTimerDisplay() {
-  const el = document.getElementById("cb-timer");
-  if (el) el.textContent = formatTime(focusSeconds);
-}
+const motivationalQuotes = [
+  "🚀 Stay focused — greatness is near!",
+  "🌱 Every second you learn, you grow.",
+  "🔥 Keep going — consistency wins!",
+  "💡 Small steps = Big results."
+];
+let quoteIndex = 0;
 
-// ---- TIMER CONTROL ----
-function startFocusTimer(isDemo = false) {
-  if (isRunning) return;
-  if (isDemo) focusSeconds = DEMO_SECONDS;
-  else if (focusSeconds <= 0) focusSeconds = POMODORO_SECONDS;
+const audio = new Audio(
+  "https://cdn.pixabay.com/download/audio/2023/03/28/audio_37b3c8a1b8.mp3?filename=soft-focus-music-14074.mp3"
+);
+audio.volume = 0.15;
+audio.loop = true;
 
-  isRunning = true;
-  document.getElementById("cb-title").innerText = "Focus Mode: ON 🚀";
+// -----------------------------
+// ⏱️ TIMER LOGIC
+// -----------------------------
+function startFocusTimer(customDuration = 3 * 60) {
+  if (running) return;
+  running = true;
+  focusDuration = customDuration;
+  document.getElementById("motivText").innerText = "🚀 Focus Mode: ON!";
+  try { audio.play(); } catch (e) { console.log("Audio blocked by Chrome"); }
 
-  timerInterval = setInterval(() => {
-    focusSeconds--;
-    updateTimerDisplay();
+  timer = setInterval(() => {
+    focusDuration--;
+    const min = Math.floor(focusDuration / 60);
+    const sec = focusDuration % 60;
+    document.getElementById("timerDisplay").innerText =
+      `${min}:${sec < 10 ? "0" + sec : sec}`;
 
-    // motivational messages
-    if (focusSeconds === 10 * 60) setMotivation("10 minutes left — keep it up! 🌟");
-    if (focusSeconds === 5 * 60) setMotivation("5 minutes — you're almost there! 💪");
+    if (focusDuration % 60 === 0 && focusDuration > 0) {
+      quoteIndex = (quoteIndex + 1) % motivationalQuotes.length;
+      document.getElementById("motivText").innerText =
+        motivationalQuotes[quoteIndex];
+    }
 
-    if (focusSeconds <= 0) {
-      clearInterval(timerInterval);
-      isRunning = false;
-      setMotivation("Session complete! Starting quiz...");
-      // pause the YouTube video if present
-      const vid = document.querySelector("video");
-      if (vid) {
-        try { vid.pause(); } catch (e) { console.warn("Could not pause video", e); }
-      }
-      // placeholder - real quiz starts here later
-      startQuizModal();
+    if (focusDuration <= 0) {
+      clearInterval(timer);
+      running = false;
+      document.getElementById("motivText").innerText = "🎉 Session Complete!";
+      document.getElementById("timerDisplay").innerText = "03:00";
+      try { videoElement?.pause(); audio.pause(); } catch {}
+      alert("Pomodoro complete! 🎯 Take a short break or start quiz!");
     }
   }, 1000);
 }
 
-function pauseFocusTimer() {
-  if (!isRunning) return;
-  clearInterval(timerInterval);
-  timerInterval = null;
-  isRunning = false;
-  setMotivation("Paused ⏸️");
+function pauseFocusTimer(reason = "Paused") {
+  if (running) {
+    clearInterval(timer);
+    running = false;
+    try { audio.pause(); } catch {}
+    document.getElementById("motivText").innerText = `⏸️ ${reason}`;
+  }
 }
 
-function resetFocusTimer() {
-  if (timerInterval) clearInterval(timerInterval);
-  timerInterval = null;
-  isRunning = false;
-  focusSeconds = POMODORO_SECONDS;
-  updateTimerDisplay();
-  document.getElementById("cb-title").innerText = "Focus Mode: OFF";
-  setMotivation("Reset. Ready when you are ✨");
-}
+// -----------------------------
+// 🎬 VIDEO & AD DETECTION
+// -----------------------------
+function handleVideo(video) {
+  videoElement = video;
 
-function setMotivation(text) {
-  const el = document.getElementById("cb-motivate");
-  if (el) el.innerText = text;
-}
+  if (adCheckInterval) clearInterval(adCheckInterval);
 
-// ---- AUTO-START ON VIDEO PLAY ----
-function attachAutoStart() {
-  // YouTube loads dynamically, so we try to attach periodically until found
-  const tryAttach = () => {
-    const video = document.querySelector("video");
-    if (!video) {
-      // try again shortly
-      setTimeout(tryAttach, 1200);
-      return;
-    }
+  adCheckInterval = setInterval(() => {
+    const adPlaying = !!document.querySelector(".ad-showing");
+    if (adPlaying && running) pauseFocusTimer("Ad playing... relax!");
+    else if (!adPlaying && !running && !video.paused && focusDuration < 180)
+      startFocusTimer(3 * 60);
+  }, 1000);
 
-    // listen for play event
-    video.addEventListener("play", () => {
-      // if user manually paused or started earlier, avoid auto-start
-      if (!isRunning && focusSeconds === POMODORO_SECONDS) {
-        sessionStartedByAuto = true;
-        startFocusTimer(false);
-      }
-    });
-  };
-  tryAttach();
-}
-
-// ---- QUIZ PLACEHOLDER ----
-function startQuizModal() {
-  // replace this with the real quiz UI later.
-  // For now show a simple modal with score placeholder and "Retry" button
-  const existing = document.getElementById("cb-quiz");
-  if (existing) existing.remove();
-
-  const modal = document.createElement("div");
-  modal.id = "cb-quiz";
-  modal.style = `
-    position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-    width: 420px; background: #fff; color: #111; padding: 18px;
-    border-radius: 12px; box-shadow: 0 12px 32px rgba(0,0,0,0.3); z-index: 2147483647; font-family: Arial;`;
-
-  modal.innerHTML = `
-    <h3 style="margin:0 0 8px 0;">Quick Quiz</h3>
-    <p style="margin:0 0 12px 0;">(Quiz UI will come here) — demo placeholder</p>
-    <div style="display:flex;gap:8px;justify-content:flex-end;">
-      <button id="cb-quiz-retry" style="padding:8px 10px;border-radius:8px;border:none;background:#3182CE;color:#fff;cursor:pointer;">Retry Focus</button>
-      <button id="cb-quiz-close" style="padding:8px 10px;border-radius:8px;border:1px solid #ddd;background:#fff;cursor:pointer;">Close</button>
-    </div>
-  `;
-  document.body.appendChild(modal);
-
-  document.getElementById("cb-quiz-retry").addEventListener("click", () => {
-    modal.remove();
-    focusSeconds = POMODORO_SECONDS;
-    updateTimerDisplay();
-    startFocusTimer(false);
-    document.querySelector("video")?.play();
+  video.addEventListener("play", () => {
+    const isAd = document.querySelector(".ad-showing");
+    if (!isAd && !running) {
+      console.log("▶️ Auto Demo Mode Started (3 min)");
+      startFocusTimer(3 * 60);
+    } else if (isAd) console.log("🚫 Ad detected — waiting to start.");
   });
-  document.getElementById("cb-quiz-close").addEventListener("click", () => modal.remove());
+
+  video.addEventListener("pause", () => pauseFocusTimer("Video paused"));
 }
 
-// ---- INIT ----
-(function init() {
-  createOverlay();
-  updateTimerDisplay();
-  attachAutoStart();
+// -----------------------------
+// 🔍 AUTO-DETECT NEW VIDEOS
+// -----------------------------
+function observeForVideos() {
+  const observer = new MutationObserver(() => {
+    const vid = document.querySelector("video");
+    if (vid && vid !== videoElement) handleVideo(vid);
+  });
+  observer.observe(document.body, { childList: true, subtree: true });
+}
 
-  // ensure overlay doesn't block important page events accidentally
-  const overlay = document.getElementById("cb-overlay");
-  overlay.style.pointerEvents = "auto";
-})();
+// -----------------------------
+// 🎯 BUTTON HANDLERS
+// -----------------------------
+function setupButtonHandlers() {
+  const startBtn = document.getElementById("startFocus");
+  const testBtn = document.getElementById("testFocus");
+
+  if (startBtn)
+    startBtn.addEventListener("click", () => {
+      const vid = document.querySelector("video");
+      if (!vid) return alert("Please play a video first!");
+      videoElement = vid;
+      startFocusTimer(25 * 60);
+    });
+
+  if (testBtn)
+    testBtn.addEventListener("click", () => {
+      const vid = document.querySelector("video");
+      if (!vid) return alert("Please play a video first!");
+      videoElement = vid;
+      startFocusTimer(3 * 60);
+    });
+}
+
+// -----------------------------
+// 🚀 INIT
+// -----------------------------
+function initializeExtension() {
+  initPomodoroUI();
+  observeForVideos();
+}
+
+window.addEventListener("load", () => setTimeout(initializeExtension, 1500));
