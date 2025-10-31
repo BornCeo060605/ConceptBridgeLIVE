@@ -1,0 +1,41 @@
+/* style.css - ConceptBridge LIVE */
+#cb-overlay {
+  position: fixed;
+  bottom: 22px;
+  right: 22px;
+  width: 240px;
+  background: linear-gradient(135deg, #4FD1C5 0%, #3182CE 100%);
+  color: #fff;
+  padding: 12px;
+  border-radius: 14px;
+  font-family: 'Poppins', Arial, sans-serif;
+  z-index: 2147483647; /* very high so it appears above page elements */
+  box-shadow: 0 8px 30px rgba(0,0,0,0.25);
+  transition: transform 0.18s ease, opacity 0.2s;
+}
+#cb-overlay.hidden { opacity: 0; transform: translateY(10px); pointer-events: none; }
+#cb-overlay h4 { margin:0 0 6px 0; font-size:14px; font-weight:600; }
+#cb-timer { font-size:20px; font-weight:700; margin-top:4px; }
+#cb-controls { margin-top:8px; display:flex; gap:8px; justify-content:flex-start; }
+.cb-btn {
+  background: rgba(255,255,255,0.12);
+  color: #fff;
+  border: none;
+  padding: 6px 8px;
+  border-radius:8px;
+  cursor:pointer;
+  font-size:13px;
+}
+.cb-btn:active { transform: translateY(1px); }
+#cb-motivate { margin-top:8px; font-size:12px; opacity:0.95; }
+.pulse {
+  animation: pulse 2s infinite;
+}
+@keyframes pulse {
+  0% { box-shadow: 0 0 6px rgba(255,255,255,0.06); }
+  50% { box-shadow: 0 0 18px rgba(255,255,255,0.10); }
+  100% { box-shadow: 0 0 6px rgba(255,255,255,0.06); }
+}
+
+/* notes / flashcards panels placeholders (later) */
+#cb-notes, #cb-flashcards { font-family:Arial; }

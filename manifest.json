@@ -1,0 +1,17 @@
+{
+  "manifest_version": 3,
+  "name": "ConceptBridge LIVE",
+  "version": "0.1",
+  "description": "AI study helper - Pomodoro + notes + quizzes",
+  "permissions": ["storage", "scripting", "activeTab"],
+  "host_permissions": ["https://www.youtube.com/*"],
+  "background": { "service_worker": "background.js" },
+  "content_scripts": [
+    {
+      "matches": ["https://www.youtube.com/*"],
+      "js": ["content.js"],
+      "css": ["style.css"]
+    }
+  ],
+  "action": { "default_popup": "popup.html" }
+}
